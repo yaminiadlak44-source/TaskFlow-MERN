@@ -14,6 +14,7 @@ Ye aapka first MERN project hai. Isme aap **Task create, read, update aur delete
 - Task ke liye local date/time par meeting schedule aur one-click Jitsi video call
 - Demo team panel: 1 admin, 1 manager aur 5 employees ke sample profiles/tasks
 - Demo CRUD browser ke `localStorage` me save hota hai; live MongoDB data se alag
+- Dashboard ke All tasks, In progress, Team assignments aur Avg. progress cards alag browser tabs me detail view kholte hain
 - Responsive frontend
 - MongoDB Atlas connection
 
@@ -21,10 +22,13 @@ Ye aapka first MERN project hai. Isme aap **Task create, read, update aur delete
 
 Header me **Try demo** click karke demo workspace kholein. Isme admin, manager aur 5 employees ke sample profiles aur website project tasks diye gaye hain. Team card ya **Preview as** dropdown se role badal sakte hain:
 
-- **Admin / Manager:** demo tasks create, edit aur delete kar sakte hain.
+- **Admin (Aarav Mehta):** demo tasks create, edit aur delete kar sakte hain.
+- **Manager:** sab tasks dekh sakta hai, lekin edit nahi kar sakta.
 - **Employee:** sirf apne assigned tasks aur progress dekh sakta hai; changes nahi kar sakta.
 
-Demo task changes isi browser ki `localStorage` me persist hote hain. Browser data clear karne par demo changes mit jayenge. **Live database** button se MongoDB workspace par wapas ja sakte hain; demo changes MongoDB me copy nahi hote. Ye role selector sirf UI preview hai, login/authentication ya secure authorization nahi. Real users ke liye server-side authentication aur authorization alag se banana hoga.
+Dashboard ke **All tasks**, **In progress**, **Team assignments** aur **Avg. progress** cards par click karne se unka detail view naye browser tab me khulta hai. Demo tabs current demo role aur browser me saved task data use karte hain.
+
+Demo task changes isi browser ki `localStorage` me persist hote hain. Browser data clear karne par demo changes mit jayenge. **Live database** button se MongoDB workspace par wapas ja sakte hain; demo changes MongoDB me copy nahi hote. Ye role selector sirf UI preview hai, login/authentication ya secure authorization nahi; live database mode me API permissions bhi nahi hain. Real users ke liye server-side authentication aur authorization alag se banana hoga.
 
 ## 2. Required software
 

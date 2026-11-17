@@ -250,6 +250,13 @@ footer{padding-top:22px;font-size:9px}
 .workspace-pill.demo{color:#496d56;background:#f0faf3;border-color:#d8efdf}
 .workspace-pill.demo>span{background:#45aa72;box-shadow:0 0 0 3px #dff4e6}
 .topbar-right{gap:10px}
+.dashboard-detail-panel{max-width:100%;margin-bottom:18px}
+.assignment-list{display:flex;flex-direction:column;margin-top:16px}
+.assignment-row,.progress-task-row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-top:1px solid #ececf2}
+.assignment-row .member-info,.progress-task-row .member-info{flex:1}
+.dashboard-overall-progress{padding:16px;border:1px solid #eeedf6;border-radius:11px;background:#faf9ff}
+.dashboard-tab-view{grid-template-columns:minmax(0,1fr)}
+.dashboard-tab-view .tasks-panel{grid-column:1}
 .role-switcher{display:flex;align-items:center;gap:7px;margin:0;color:#7e8292;font-size:10px;font-weight:600;white-space:nowrap}
 .role-switcher select{width:auto;max-width:205px;margin:0;padding:8px 26px 8px 10px;border-radius:9px;background:#fff;font-size:10px}
 .mode-switch-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 11px;border:1px solid #e4e1f7;border-radius:9px;background:#f8f7ff;color:#6055c5;font-size:10px;font-weight:700;white-space:nowrap;transition:background .18s,transform .18s}
@@ -302,6 +309,9 @@ footer{padding-top:22px;font-size:9px}
   .demo-only-tag{font-size:0;padding:8px}
   .demo-banner{align-items:flex-start;flex-direction:column;gap:7px}
   .demo-team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .assignment-row,.progress-task-row{gap:8px;padding:11px 0}
+  .assignment-row .member-info span,.progress-task-row .member-info span{line-height:1.5}
+  .assignment-row .member-progress,.progress-task-row .member-progress{width:58px}
 }
 @media(max-width:390px){
   .demo-team-grid{grid-template-columns:1fr}

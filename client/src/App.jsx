@@ -3,14 +3,7 @@ import axios from "axios";
 import { Plus, Search, Pencil, Trash2, CheckCircle2, ListTodo, X, LoaderCircle, Users, ChevronDown, ChevronUp, UserRound, UserPlus, Sparkles, ClipboardList, Clock3, TrendingUp, ArrowUpRight, CalendarDays, Video, Copy, RefreshCw, ShieldCheck, Crown, BriefcaseBusiness, Play, Database } from "lucide-react";
 import { createDemoTasks, DEMO_STORAGE_KEY, DEMO_TEAM } from "./demoData.js";
 
-
-// Render frontend: set VITE_API_URL to
-// https://taskflow-backend-47ch.onrender.com/api/tasks
-// Local development falls back to the local Express API.
-const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api/tasks"
-).replace(/\/+$/, "");
-
+const API_URL = "http://localhost:5000/api/tasks";
 const emptyForm = { title: "", description: "", status: "Pending", meetingAt: "", teamMembers: [] };
 
 const toDateTimeInputValue = (value) => {
@@ -26,11 +19,16 @@ const formatMeetingDate = (value) => new Intl.DateTimeFormat(undefined, {
 }).format(new Date(value));
 
 function App() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedView = searchParams.get("view");
+  const dashboardView = ["all", "in-progress", "assignments", "progress"].includes(requestedView)
+    ? requestedView
+    : null;
   const [tasks, setTasks] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState(() => dashboardView === "in-progress" ? "In Progress" : "All");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -39,8 +37,8 @@ function App() {
   const [connectionState, setConnectionState] = useState("checking");
   const [connectionError, setConnectionError] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const [workspaceMode, setWorkspaceMode] = useState("live");
-  const [activeDemoUserId, setActiveDemoUserId] = useState("admin");
+  const [workspaceMode, setWorkspaceMode] = useState(() => searchParams.get("mode") === "demo" ? "demo" : "live");
+  const [activeDemoUserId, setActiveDemoUserId] = useState(() => searchParams.get("user") || "admin");
   const apiRequestId = useRef(0);
 
   const fetchTasks = async () => {
@@ -64,11 +62,30 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTasks();
+    if (workspaceMode !== "demo") {
+      fetchTasks();
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem(DEMO_STORAGE_KEY);
+      const demoTasks = saved ? JSON.parse(saved) : createDemoTasks();
+      if (!Array.isArray(demoTasks)) {
+        throw new Error("Saved demo data is invalid. Clear this browser's TaskFlow demo storage and try again.");
+      }
+      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(demoTasks));
+      setTasks(demoTasks);
+      setLoading(false);
+      setConnectionState("demo");
+    } catch (err) {
+      setLoading(false);
+      setError(`Demo workspace load nahi ho paya: ${err.message}`);
+    }
   }, []);
 
   const activeDemoUser = DEMO_TEAM.find((member) => member.id === activeDemoUserId) || DEMO_TEAM[0];
   const isReadOnlyDemo = workspaceMode === "demo" && activeDemoUser.type === "employee";
+  const canEditTasks = workspaceMode !== "demo" || activeDemoUser.type === "admin";
   const connectionLabel = workspaceMode === "demo"
     ? "Demo workspace"
     : connectionState === "checking"
@@ -151,6 +168,19 @@ function App() {
     setSearch("");
   };
 
+  const openDashboardTab = (view) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", view);
+    if (workspaceMode === "demo") {
+      url.searchParams.set("mode", "demo");
+      url.searchParams.set("user", activeDemoUser.id);
+    } else {
+      url.searchParams.delete("mode");
+      url.searchParams.delete("user");
+    }
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.title.trim()) return;
@@ -209,7 +239,7 @@ function App() {
   };
 
   const startEdit = (task) => {
-    if (isReadOnlyDemo) return;
+    if (!canEditTasks) return;
     setForm({
       title: task.title,
       description: task.description || "",
@@ -251,6 +281,7 @@ function App() {
   };
 
   const removeTask = async (id) => {
+    if (!canEditTasks) return;
     if (!window.confirm("Kya aap is task ko delete karna chahte hain?")) return;
     try {
       if (workspaceMode === "demo") {
@@ -313,7 +344,7 @@ function App() {
           <button className="mode-switch-button" onClick={workspaceMode === "demo" ? switchToLiveWorkspace : enterDemoWorkspace}>
             {workspaceMode === "demo" ? <><Database size={15}/> Live database</> : <><Play size={14}/> Try demo</>}
           </button>
-          {!isReadOnlyDemo && <button className="topbar-cta" onClick={focusNewTask}><Plus size={16}/> New task</button>}
+          {canEditTasks && <button className="topbar-cta" onClick={focusNewTask}><Plus size={16}/> New task</button>}
         </div>
       </header>
 
@@ -323,26 +354,26 @@ function App() {
           <p className="eyebrow">YOUR TEAM, IN SYNC</p>
           <h1>Make work <span>flow.</span></h1>
           <p className="hero-copy">{isReadOnlyDemo ? `Your assigned work, ${activeDemoUser.name.split(" ")[0]} — progress at a glance.` : "One clear view of every task, every teammate, and how far you’ve come."}</p>
-          {!isReadOnlyDemo && <button className="hero-button" onClick={focusNewTask}><Sparkles size={16}/> Create a new task <ArrowUpRight size={15}/></button>}
+          {canEditTasks && <button className="hero-button" onClick={focusNewTask}><Sparkles size={16}/> Create a new task <ArrowUpRight size={15}/></button>}
         </div>
         <div className="hero-art" aria-hidden="true"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-art-icon"><CheckCircle2 size={37}/></div><span className="floating-chip chip-one"><span className="chip-check">✓</span> Work in sync</span><span className="floating-chip chip-two"><TrendingUp size={14}/> Progress, clearly</span></div>
       </section>
 
       <section className="stats-grid">
-        <button className={`stat-card ${filter === "All" ? "stat-selected" : ""}`} onClick={() => setFilter("All")}><span className="stat-icon violet"><ClipboardList size={18}/></span><span className="stat-label">All tasks</span><strong>{counts.total}</strong><span className="stat-foot">Across your workspace <ArrowUpRight size={13}/></span></button>
-        <button className={`stat-card ${filter === "In Progress" ? "stat-selected" : ""}`} onClick={() => setFilter("In Progress")}><span className="stat-icon blue"><Clock3 size={18}/></span><span className="stat-label">In progress</span><strong>{counts.inProgress}</strong><span className="stat-foot">Moving forward <ArrowUpRight size={13}/></span></button>
-        <article className="stat-card stat-static"><span className="stat-icon amber"><Users size={18}/></span><span className="stat-label">Team assignments</span><strong>{counts.members}</strong><span className="stat-foot">People across your tasks</span></article>
-        <article className="stat-card stat-static"><span className="stat-icon green"><TrendingUp size={18}/></span><span className="stat-label">Avg. progress</span><strong>{counts.progress}<small>%</small></strong><span className="stat-foot">Based on assigned work</span></article>
+        <button className={`stat-card ${dashboardView === "all" ? "stat-selected" : ""}`} onClick={() => openDashboardTab("all")}><span className="stat-icon violet"><ClipboardList size={18}/></span><span className="stat-label">All tasks</span><strong>{counts.total}</strong><span className="stat-foot">Across your workspace <ArrowUpRight size={13}/></span></button>
+        <button className={`stat-card ${dashboardView === "in-progress" ? "stat-selected" : ""}`} onClick={() => openDashboardTab("in-progress")}><span className="stat-icon blue"><Clock3 size={18}/></span><span className="stat-label">In progress</span><strong>{counts.inProgress}</strong><span className="stat-foot">Moving forward <ArrowUpRight size={13}/></span></button>
+        <button className={`stat-card ${dashboardView === "assignments" ? "stat-selected" : ""}`} onClick={() => openDashboardTab("assignments")}><span className="stat-icon amber"><Users size={18}/></span><span className="stat-label">Team assignments</span><strong>{counts.members}</strong><span className="stat-foot">People across your tasks</span></button>
+        <button className={`stat-card ${dashboardView === "progress" ? "stat-selected" : ""}`} onClick={() => openDashboardTab("progress")}><span className="stat-icon green"><TrendingUp size={18}/></span><span className="stat-label">Avg. progress</span><strong>{counts.progress}<small>%</small></strong><span className="stat-foot">Based on assigned work</span></button>
       </section>
 
-      {workspaceMode === "demo" && (
+      {workspaceMode === "demo" && !dashboardView && (
         <section className="panel demo-team-panel">
           <div className="demo-panel-heading">
-            <div><p className="eyebrow">MEET THE CREW</p><h2>Demo team <span className="count-pill">{DEMO_TEAM.length} people</span></h2></div>
+            <div><p className="eyebrow">ADMIN PANEL</p><h2>{activeDemoUser.type === "admin" ? activeDemoUser.name : "Role preview"} <span className="count-pill">{activeDemoUser.type === "admin" ? "Admin" : "Read only"}</span></h2></div>
             <span className="demo-only-tag"><ShieldCheck size={14}/> Preview only · no login</span>
           </div>
           <div className="demo-banner">
-            <div><Sparkles size={17}/><span><strong>Demo workspace</strong><small>Changes are saved only in this browser and never sent to MongoDB. Role switching is a preview, not access control.</small></span></div>
+            <div><Sparkles size={17}/><span><strong>Admin: Aarav Mehta</strong><small>Admin task create/edit/delete kar sakta hai. Manager aur employees sirf tasks dekh sakte hain.</small></span></div>
             <span>1 admin · 1 manager · 5 employees</span>
           </div>
           <div className="demo-team-grid">
@@ -361,8 +392,49 @@ function App() {
         </section>
       )}
 
-      <section className={`content-grid ${isReadOnlyDemo ? "employee-view" : ""}`}>
-        {!isReadOnlyDemo && <aside className="panel form-panel">
+      {dashboardView === "assignments" ? (
+        <section className="panel dashboard-detail-panel">
+          <div className="tasks-heading"><div><p className="eyebrow">TEAM WORKLOAD</p><h2>Team assignments <span className="count-pill">{counts.members}</span></h2></div></div>
+          {error && <div className="error-message" role="alert"><span>{error}</span>{connectionError && <button className="retry-button" type="button" onClick={retryConnection} disabled={retrying}>{retrying ? <LoaderCircle className="spin" size={14}/> : <RefreshCw size={14}/>} Retry</button>}</div>}
+          {loading ? <div className="empty-state"><LoaderCircle className="spin" size={26}/><p>Loading assignments...</p></div> :
+            <div className="assignment-list">
+              {visibleTasks.flatMap((task) => (task.teamMembers || []).map((member, index) => (
+                <article className="assignment-row" key={`${task._id}-${member._id || member.name}-${index}`}>
+                  <div className="member-avatar"><UserRound size={17}/></div>
+                  <div className="member-info"><strong>{member.name}</strong><span>{task.title} · {member.responsibility}</span></div>
+                  <div className="member-progress"><strong>{Number(member.progress || 0)}%</strong><div className="progress-track"><span style={{ width: `${Number(member.progress || 0)}%` }}/></div></div>
+                </article>
+              )))}
+              {!visibleTasks.some((task) => task.teamMembers?.length) && <div className="empty-state"><h3>No assignments found</h3><p>There are no team assignments to show.</p></div>}
+            </div>
+          }
+        </section>
+      ) : dashboardView === "progress" ? (
+        <section className="panel dashboard-detail-panel">
+          <div className="tasks-heading"><div><p className="eyebrow">WORK COMPLETION</p><h2>Average progress <span className="count-pill">{counts.progress}%</span></h2></div></div>
+          <div className="overall-progress dashboard-overall-progress">
+            <div className="progress-heading"><strong>Assigned work completion</strong><strong>{counts.progress}%</strong></div>
+            <div className="progress-track"><span style={{ width: `${counts.progress}%` }}/></div>
+            <p>Average progress across {counts.members} team assignments.</p>
+          </div>
+          {error && <div className="error-message" role="alert"><span>{error}</span>{connectionError && <button className="retry-button" type="button" onClick={retryConnection} disabled={retrying}>{retrying ? <LoaderCircle className="spin" size={14}/> : <RefreshCw size={14}/>} Retry</button>}</div>}
+          <div className="assignment-list">
+            {visibleTasks.map((task) => {
+              const teamMembers = task.teamMembers || [];
+              const progress = teamMembers.length
+                ? Math.round(teamMembers.reduce((total, member) => total + Number(member.progress || 0), 0) / teamMembers.length)
+                : 0;
+              return <article className="progress-task-row" key={task._id}>
+                <div className="member-info"><strong>{task.title}</strong><span>{teamMembers.length} {teamMembers.length === 1 ? "assignment" : "assignments"} · {task.status}</span></div>
+                <div className="member-progress"><strong>{progress}%</strong><div className="progress-track"><span style={{ width: `${progress}%` }}/></div></div>
+              </article>;
+            })}
+            {!visibleTasks.length && <div className="empty-state"><h3>No tasks found</h3><p>There are no tasks to calculate progress from.</p></div>}
+          </div>
+        </section>
+      ) : (
+      <section className={`content-grid ${isReadOnlyDemo ? "employee-view" : ""} ${dashboardView ? "dashboard-tab-view" : ""}`}>
+        {canEditTasks && <aside className="panel form-panel">
           <div className="panel-heading">
             <div><p className="eyebrow">{editingId ? "MAKE IT JUST RIGHT" : "GET THE BALL ROLLING"}</p><h2>{editingId ? "Edit task" : "Create a task"}</h2></div>
             {editingId && <button className="icon-button" onClick={cancelEdit} aria-label="Cancel edit"><X size={18}/></button>}
@@ -448,7 +520,7 @@ function App() {
                           </div>
                           <span className="expand-icon">{isExpanded ? <ChevronUp size={17}/> : <ChevronDown size={17}/>}</span>
                         </button>
-                        {!isReadOnlyDemo && <div className="task-actions">
+                        {canEditTasks && <div className="task-actions">
                           <button className="icon-button edit" onClick={() => startEdit(task)} aria-label={`Edit ${task.title}`} title="Edit"><Pencil size={17}/></button>
                           <button className="icon-button delete" onClick={() => removeTask(task._id)} aria-label={`Delete ${task.title}`} title="Delete"><Trash2 size={17}/></button>
                         </div>}
@@ -470,7 +542,7 @@ function App() {
                                 </div>
                               ))}
                             </div>
-                          ) : isReadOnlyDemo ? (
+                          ) : !canEditTasks ? (
                             <p className="no-team-note">No employee assignments on this task.</p>
                           ) : (
                             <button className="secondary-button assign-button" type="button" onClick={() => startEdit(task)}><UserPlus size={15}/> Employees assign karein</button>
@@ -496,6 +568,7 @@ function App() {
           }
         </section>
       </section>
+      )}
       <footer>Built with React, Express & MongoDB <span>•</span> Beginner MERN CRUD Project</footer>
     </main>
   );
