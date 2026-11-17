@@ -1,0 +1,13 @@
+{
+  "name": "mern-crud-beginner",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "node scripts/dev.cjs",
+    "dev:backend": "node scripts/dev.cjs backend",
+    "dev:frontend": "node scripts/dev.cjs frontend",
+    "server": "node scripts/dev.cjs backend",
+    "client": "node scripts/dev.cjs frontend"
+  }
+}
