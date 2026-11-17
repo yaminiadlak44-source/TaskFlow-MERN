@@ -3,7 +3,14 @@ import axios from "axios";
 import { Plus, Search, Pencil, Trash2, CheckCircle2, ListTodo, X, LoaderCircle, Users, ChevronDown, ChevronUp, UserRound, UserPlus, Sparkles, ClipboardList, Clock3, TrendingUp, ArrowUpRight, CalendarDays, Video, Copy, RefreshCw, ShieldCheck, Crown, BriefcaseBusiness, Play, Database } from "lucide-react";
 import { createDemoTasks, DEMO_STORAGE_KEY, DEMO_TEAM } from "./demoData.js";
 
-const API_URL = "http://localhost:5000/api/tasks";
+
+// Render frontend: set VITE_API_URL to
+// https://taskflow-backend-47ch.onrender.com/api/tasks
+// Local development falls back to the local Express API.
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api/tasks"
+).replace(/\/+$/, "");
+
 const emptyForm = { title: "", description: "", status: "Pending", meetingAt: "", teamMembers: [] };
 
 const toDateTimeInputValue = (value) => {
